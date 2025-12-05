@@ -1,19 +1,19 @@
 // Sample product data for search and filtering
 // In a production environment, this would come from a backend API
 const products = [
-  { id: 1, name: "Chunky Sneakers", price: 120, category: "footwear", image: "images/products/chunky-sneakers.jpg" },
-  { id: 2, name: "Oversized Jacket", price: 150, category: "clothing", image: "images/products/oversized-jacket.jpg" },
-  { id: 3, name: "Leather Purse", price: 99, category: "accessories", image: "images/products/leather-purse.jpg" },
-  { id: 4, name: "Minimal Watch", price: 80, category: "accessories", image: "images/products/minimal-watch.jpg" },
-  { id: 5, name: "Street Hoodie", price: 70, category: "clothing", image: "images/products/street-hoodie.jpg" },
-  { id: 6, name: "Ripped Jeans", price: 60, category: "clothing", image: "images/products/ripped-jeans.jpg" },
-  { id: 7, name: "Canvas Sneakers", price: 85, category: "footwear", image: "images/products/canvas-sneakers.jpg" },
-  { id: 8, name: "Luxury Watch", price: 199, category: "accessories", image: "images/products/luxury-watch.jpg" },
-  { id: 9, name: "Crossbody Purse", price: 130, category: "accessories", image: "images/products/crossbody-purse.jpg" },
+  { id: 1, name: "Chunky Sneakers", price: 120, category: "footwear", image: "images/products/sneakers/chunky-sneakers.jpg" },
+  { id: 2, name: "Oversized Jacket", price: 150, category: "clothing", image: "images/products/clothing/oversized-jacket.jpg" },
+  { id: 3, name: "Leather Purse", price: 99, category: "accessories", image: "images/products/purses/leather-purse.jpg" },
+  { id: 4, name: "Minimal Watch", price: 80, category: "accessories", image: "images/products/watches/minimal-watch.jpg" },
+  { id: 5, name: "Street Hoodie", price: 70, category: "clothing", image: "images/products/clothing/street-hoodie.jpg" },
+  { id: 6, name: "Ripped Jeans", price: 60, category: "clothing", image: "images/products/clothing/ripped-jeans.jpg" },
+  { id: 7, name: "Canvas Sneakers", price: 85, category: "footwear", image: "images/products/sneakers/canvas-sneakers.jpg" },
+  { id: 8, name: "Luxury Watch", price: 199, category: "accessories", image: "images/products/watches/luxury-watch.jpg" },
+  { id: 9, name: "Crossbody Purse", price: 130, category: "accessories", image: "images/products/purses/crossbody-purse.jpg" },
   { id: 10, name: "Gen-Z Shades", price: 50, category: "accessories", image: "images/products/genz-shades.jpg" },
-  { id: 11, name: "Retro Print Tee", price: 40, category: "clothing", image: "images/products/retro-print-tee.jpg" },
-  { id: 12, name: "Anime Graphic Tee", price: 45, category: "clothing", image: "images/products/anime-graphic-tee.jpg" },
-  { id: 13, name: "Minimal Logo Tee", price: 35, category: "clothing", image: "images/products/minimal-logo-tee.jpg" }
+  { id: 11, name: "Retro Print Tee", price: 40, category: "clothing", image: "images/products/clothing/retro-print-tee.jpg" },
+  { id: 12, name: "Anime Graphic Tee", price: 45, category: "clothing", image: "images/products/clothing/anime-graphic-tee.jpg" },
+  { id: 13, name: "Minimal Logo Tee", price: 35, category: "clothing", image: "images/products/clothing/minimal-logo-tee.jpg" }
 ];
 
 // Utility function to sanitize user inputs
@@ -186,7 +186,7 @@ function updateCartUI() {
     const cartItemElement = document.createElement('div');
     cartItemElement.className = 'cart-item';
     cartItemElement.innerHTML = `
-      <img src="images/products/${item.name.toLowerCase().replace(/ /g, '-')}.jpg" alt="${escapeHtml(item.name)}">
+      <img src="images/products/${getProductImageFolder(item.name)}/${item.name.toLowerCase().replace(/ /g, '-')}.jpg" alt="${escapeHtml(item.name)}">
       <div class="item-details">
         <h4>${escapeHtml(item.name)}</h4>
         <p class="item-price">$${item.price.toFixed(2)}</p>
@@ -219,7 +219,23 @@ function escapeHtml(text) {
     "'": '&#039;'
   };
   
-  return String(text).replace(/[&<>"']/g, function(m) { return map[m]; });
+  return String(text).replace(/[&<>'"]/g, function(m) { return map[m]; });
+}
+
+// Utility function to get product image folder based on product name
+function getProductImageFolder(productName) {
+  const watches = ['Minimal Watch', 'Luxury Watch'];
+  const purses = ['Leather Purse', 'Crossbody Purse'];
+  const sneakers = ['Chunky Sneakers', 'Canvas Sneakers'];
+  const clothing = ['Oversized Jacket', 'Street Hoodie', 'Ripped Jeans', 'Retro Print Tee', 'Anime Graphic Tee', 'Minimal Logo Tee'];
+  
+  if (watches.includes(productName)) return 'watches';
+  if (purses.includes(productName)) return 'purses';
+  if (sneakers.includes(productName)) return 'sneakers';
+  if (clothing.includes(productName)) return 'clothing';
+  
+  // Default folder
+  return '';
 }
 
 // Change item quantity
