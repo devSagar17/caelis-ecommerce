@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Caelis - Premium clothing brand offering sneakers, purses, watches and more">
+  <meta name="keywords" content="clothing, fashion, sneakers, purses, watches, streetwear">
+  <meta name="author" content="Caelis Clothing">
+  <title>Caelis - Clothing Brand</title>
+  <link rel="preload" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
+  <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap"></noscript>
+  <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+  <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"></noscript>
+  <link rel="stylesheet" href="style.css">
+  <link rel="icon" href="https://via.placeholder.com/32x32/222/fff?text=C" type="image/png">
+</head>
+<body>
+  <!-- Search Overlay -->
+  <div class="search-overlay" id="searchOverlay">
+    <div class="search-container">
+      <span class="close-search" onclick="toggleSearch()">&times;</span>
+      <input type="text" id="searchInput" placeholder="Search products..." onkeyup="filterProducts()">
+      <div class="search-results" id="searchResults"></div>
+    </div>
+  </div>
+
+  <!-- User Account Modal -->
+  <div class="account-modal" id="accountModal">
+    <div class="modal-content">
+      <span class="close-modal" onclick="toggleAccount()">&times;</span>
+      <div class="auth-tabs">
+        <button class="tab-btn active" onclick="switchTab('login')">Login</button>
+        <button class="tab-btn" onclick="switchTab('register')">Register</button>
+      </div>
+      <div class="auth-form">
+        <div id="loginForm">
+          <h2>Login to Your Account</h2>
+          <input type="email" placeholder="Email" class="auth-input" required>
+          <input type="password" placeholder="Password" class="auth-input" required>
+          <button class="auth-btn">Login</button>
+          <p><a href="#" onclick="switchTab('register')">Don't have an account? Register</a></p>
+        </div>
+        <div id="registerForm" style="display:none;">
+          <h2>Create New Account</h2>
+          <input type="text" placeholder="Full Name" class="auth-input" required>
+          <input type="email" placeholder="Email" class="auth-input" required>
+          <input type="password" placeholder="Password" class="auth-input" required>
+          <input type="password" placeholder="Confirm Password" class="auth-input" required>
+          <button class="auth-btn">Register</button>
+          <p><a href="#" onclick="switchTab('login')">Already have an account? Login</a></p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Shopping Cart Sidebar -->
+  <div class="cart-sidebar" id="cartSidebar">
+    <div class="cart-header">
+      <h2>Your Cart</h2>
+      <span class="close-btn" onclick="toggleCart()">&times;</span>
+    </div>
+    <div class="cart-items" id="cartItems">
+      <!-- Cart items will be populated here -->
+    </div>
+    <div class="cart-footer">
+      <div class="cart-total">
+        <strong>Total: $<span id="cartTotal">0.00</span></strong>
+      </div>
+      <button class="checkout-btn" onclick="proceedToCheckout()">Proceed to Checkout</button>
+    </div>
+  </div>
+
+  <!-- Checkout Modal -->
+  <div class="checkout-modal" id="checkoutModal">
+    <div class="checkout-content">
+      <span class="close-checkout" onclick="closeCheckout()">&times;</span>
+      <h2>Checkout</h2>
+      <div class="checkout-steps">
+        <div class="step active" id="step1">1. Shipping</div>
+        <div class="step" id="step2">2. Payment</div>
+        <div class="step" id="step3">3. Confirmation</div>
+      </div>
+      
+      <!-- Step 1: Shipping Information -->
+      <div class="checkout-step active" id="shippingStep">
+        <h3>Shipping Information</h3>
+        <form id="shippingForm">
+          <input type="text" placeholder="Full Name" class="checkout-input" required>
+          <input type="email" placeholder="Email" class="checkout-input" required>
+          <input type="text" placeholder="Address" class="checkout-input" required>
+          <div class="form-row">
+            <input type="text" placeholder="City" class="checkout-input" required>
+            <input type="text" placeholder="ZIP Code" class="checkout-input" required>
+          </div>
+          <div class="form-row">
+            <select class="checkout-input" id="countrySelect" required onchange="toggleIndianFields()">
+              <option value="">Select Country</option>
+              <option value="india">India</option>
+              <option value="usa">United States</option>
+              <option value="canada">Canada</option>
+              <option value="uk">United Kingdom</option>
+            </select>
+            <input type="text" placeholder="Phone" class="checkout-input" required>
+          </div>
+          <!-- Indian State Field (shown only for India) -->
+          <div class="form-row" id="indianFields" style="display: none;">
+            <select class="checkout-input" id="stateSelect" required>
+              <option value="">Select State</option>
+              <option value="delhi">Delhi</option>
+              <option value="maharashtra">Maharashtra</option>
+              <option value="karnataka">Karnataka</option>
+              <option value="tamilnadu">Tamil Nadu</option>
+              <option value="up">Uttar Pradesh</option>
+              <option value="westbengal">West Bengal</option>
+              <option value="rajasthan">Rajasthan</option>
+              <option value="gujarat">Gujarat</option>
+            </select>
+            <input type="text" placeholder="GST Number (Optional)" class="checkout-input">
+          </div>
+          <button type="button" class="next-btn" onclick="nextStep(1)">Continue to Payment</button>
+        </form>
+      </div>
+      
+      <!-- Step 2: Payment Information -->
+      <div class="checkout-step" id="paymentStep">
+        <h3>Payment Method</h3>
+        <div class="payment-methods">
+          <div class="payment-method active" onclick="selectPaymentMethod('credit')">
+            <i class="fas fa-credit-card"></i>
+            <span>Credit/Debit Card</span>
+          </div>
+          <div class="payment-method" onclick="selectPaymentMethod('razorpay')">
+            <i class="fas fa-money-bill-wave"></i>
+            <span>Razorpay</span>
+          </div>
+          <div class="payment-method" onclick="selectPaymentMethod('upi')">
+            <i class="fas fa-mobile-alt"></i>
+            <span>UPI (Google Pay/PhonePe)</span>
+          </div>
+        </div>
+        
+        <!-- Credit/Debit Card Form -->
+        <div class="payment-form" id="creditCardForm">
+          <form id="paymentForm">
+            <input type="text" placeholder="Card Number" class="checkout-input" required>
+            <div class="form-row">
+              <input type="text" placeholder="MM/YY" class="checkout-input" required>
+              <input type="text" placeholder="CVV" class="checkout-input" required>
+            </div>
+            <input type="text" placeholder="Cardholder Name" class="checkout-input" required>
+          </form>
+        </div>
+        
+        <!-- Razorpay Form -->
+        <div class="payment-form" id="razorpayForm" style="display: none;">
+          <p>Pay securely using Razorpay. You will be redirected to Razorpay to complete your payment.</p>
+          <div class="razorpay-info">
+            <p><i class="fas fa-shield-alt"></i> Secure payment powered by Razorpay</p>
+            <p><i class="fas fa-lock"></i> PCI DSS compliant</p>
+          </div>
+        </div>
+        
+        <!-- UPI Form -->
+        <div class="payment-form" id="upiForm" style="display: none;">
+          <form id="upiFormFields">
+            <input type="text" placeholder="Enter UPI ID (e.g. username@upi)" class="checkout-input" required>
+            <p class="upi-note">You will receive a collect request on your UPI app. Approve the payment to complete your order.</p>
+            
+            <!-- QR Code Section -->
+            <div class="qr-section">
+              <h4>Pay using QR Code</h4>
+              <p>Scan the QR code below with any UPI app:</p>
+              <div class="qr-code-placeholder">
+                <i class="fas fa-qrcode qr-icon"></i>
+                <p>QR Code for Payment</p>
+              </div>
+              <p class="qr-amount">Amount: ₹<span id="qrAmount">0.00</span></p>
+              <button type="button" class="scan-btn" onclick="simulateQRScan()">
+                <i class="fas fa-camera"></i> Scan QR Code
+              </button>
+            </div>
+          </form>
+        </div>
+        
+        <div class="order-summary">
+          <h4>Order Summary</h4>
+          <div class="summary-items" id="summaryItems">
+            <!-- Order items will be populated here -->
+          </div>
+          <div class="summary-total">
+            <strong>Total: $<span id="summaryTotal">0.00</span></strong>
+          </div>
+        </div>
+        
+        <div class="checkout-buttons">
+          <button class="back-btn" onclick="prevStep(2)">Back</button>
+          <button class="pay-btn" onclick="processPayment()">Pay Now</button>
+        </div>
+      </div>
+      
+      <!-- Step 3: Confirmation -->
+      <div class="checkout-step" id="confirmationStep">
+        <div class="confirmation-content">
+          <i class="fas fa-check-circle confirmation-icon"></i>
+          <h3>Order Confirmed!</h3>
+          <p>Thank you for your purchase. Your order has been placed successfully.</p>
+          <p>Order ID: <strong id="orderId">ORD-789456123</strong></p>
+          <div class="order-details">
+            <h4>Order Details</h4>
+            <div class="detail-row">
+              <span>Email:</span>
+              <span id="customerEmail">customer@example.com</span>
+            </div>
+            <div class="detail-row">
+              <span>Shipping Address:</span>
+              <span id="shippingAddress">123 Main St, City, State 12345</span>
+            </div>
+            <div class="detail-row">
+              <span>Payment Method:</span>
+              <span id="paymentMethod">Credit Card</span>
+            </div>
+            <div class="detail-row">
+              <span>Total Amount:</span>
+              <span id="finalAmount">$0.00</span>
+            </div>
+            <div class="detail-row" id="transactionIdRow" style="display: none;">
+              <span>Transaction ID:</span>
+              <span id="transactionId">TXN-XXXXXXXXXX</span>
+            </div>
+          </div>
+          <button class="continue-shopping" onclick="closeCheckout()">Continue Shopping</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="overlay" id="overlay" onclick="toggleCart()"></div>
+
+  <header>
+    <div class="logo">CAELIS</div>
+    <nav>
+      <ul>
+        <li><a href="#">Home</a></li>
+        <li><a href="#">Shop</a></li>
+        <li><a href="#">Categories</a></li>
+        <li><a href="#">New Arrivals</a></li>
+        <li><a href="#">Contact</a></li>
+      </ul>
+    </nav>
+    <div class="icons">
+      <i class="fas fa-search" onclick="toggleSearch()" aria-label="Search"></i>
+      <i class="fas fa-user" onclick="toggleAccount()" aria-label="Account"></i>
+      <div class="cart-icon" onclick="toggleCart()" aria-label="Shopping Cart">
+        <i class="fas fa-shopping-cart"></i>
+        <span class="cart-count" id="cartCount">0</span>
+      </div>
+    </div>
+  </header>
+
+  <section class="hero">
+    <div class="slides">
+      <div class="slide" style="background-image: url('https://via.placeholder.com/1200x600/222/fff?text=Streetwear+Drop');">
+        <h1>Streetwear Drop</h1>
+      </div>
+      <div class="slide" style="background-image: url('https://via.placeholder.com/1200x600/333/fff?text=Luxury+Purses');">
+        <h1>Luxury Purses</h1>
+      </div>
+      <div class="slide" style="background-image: url('https://via.placeholder.com/1200x600/444/fff?text=Bold+Watches');">
+        <h1>Bold Watches</h1>
+      </div>
+    </div>
+    <div class="controls">
+      <span class="prev" aria-label="Previous slide">&#10094;</span>
+      <span class="next" aria-label="Next slide">&#10095;</span>
+    </div>
+  </section>
+
+  <section class="categories">
+    <h2>SHOP BY CATEGORY</h2>
+    <div class="category-grid">
+      <div class="category-card" data-category="all" onclick="filterByCategoryType('all')">
+        <img src="https://via.placeholder.com/300x300/222/fff?text=All+Items" alt="All Items">
+        <h3>All Items</h3>
+      </div>
+      <div class="category-card" data-category="clothing" onclick="filterByCategoryType('clothing')">
+        <img src="https://via.placeholder.com/300x300/222/fff?text=Joggers" alt="Joggers">
+        <h3>Joggers</h3>
+      </div>
+      <div class="category-card" data-category="clothing" onclick="filterByCategoryType('clothing')">
+        <img src="https://via.placeholder.com/300x300/222/fff?text=Cosplay" alt="Cosplay">
+        <h3>Cosplay</h3>
+      </div>
+      <div class="category-card" data-category="clothing" onclick="filterByCategoryType('clothing')">
+        <img src="https://via.placeholder.com/300x300/222/fff?text=Shirts" alt="Shirts">
+        <h3>Shirts</h3>
+      </div>
+      <div class="category-card" data-category="footwear" onclick="filterByCategoryType('footwear')">
+        <img src="https://via.placeholder.com/300x300/222/fff?text=Sneakers" alt="Sneakers">
+        <h3>Sneakers</h3>
+      </div>
+      <div class="category-card" data-category="accessories" onclick="filterByCategoryType('accessories')">
+        <img src="https://via.placeholder.com/300x300/222/fff?text=Watches" alt="Watches">
+        <h3>Watches</h3>
+      </div>
+      <div class="category-card" data-category="accessories" onclick="filterByCategoryType('accessories')">
+        <img src="https://via.placeholder.com/300x300/222/fff?text=Purses" alt="Purses">
+        <h3>Purses</h3>
+      </div>
+    </div>
+  </section>
+
+  <section class="filters">
+    <div class="filter-container">
+      <select id="categoryFilter" onchange="filterByCategory()">
+        <option value="all">All Categories</option>
+        <option value="clothing">Clothing</option>
+        <option value="accessories">Accessories</option>
+        <option value="footwear">Footwear</option>
+      </select>
+      <select id="priceFilter" onchange="filterByPrice()">
+        <option value="all">All Prices</option>
+        <option value="0-50">Under $50</option>
+        <option value="50-100">$50 - $100</option>
+        <option value="100+">Over $100</option>
+      </select>
+      <button onclick="resetFilters()">Reset Filters</button>
+    </div>
+  </section>
+
+  <section class="new-arrivals">
+    <h2>NEW ARRIVALS</h2>
+    <div class="product-grid" id="productGrid">
+      <div class="product-card" data-id="1" data-name="Chunky Sneakers" data-price="120" data-category="footwear">
+        <img src="https://via.placeholder.com/300x300/222/fff?text=Sneakers" alt="Sneakers">
+        <h3>Chunky Sneakers</h3>
+        <p>$120</p>
+        <button class="add-to-cart">Add to Cart</button>
+      </div>
+      <div class="product-card" data-id="2" data-name="Oversized Jacket" data-price="150" data-category="clothing">
+        <img src="https://via.placeholder.com/300x300/222/fff?text=Jacket" alt="Jacket">
+        <h3>Oversized Jacket</h3>
+        <p>$150</p>
+        <button class="add-to-cart">Add to Cart</button>
+      </div>
+      <div class="product-card" data-id="3" data-name="Leather Purse" data-price="99" data-category="accessories">
+        <img src="https://via.placeholder.com/300x300/222/fff?text=Purse" alt="Purse">
+        <h3>Leather Purse</h3>
+        <p>$99</p>
+        <button class="add-to-cart">Add to Cart</button>
+      </div>
+      <div class="product-card" data-id="4" data-name="Minimal Watch" data-price="80" data-category="accessories">
+        <img src="https://via.placeholder.com/300x300/222/fff?text=Watch" alt="Watch">
+        <h3>Minimal Watch</h3>
+        <p>$80</p>
+        <button class="add-to-cart">Add to Cart</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="trending">
+    <h2>TRENDING NOW</h2>
+    <div class="product-grid">
+      <div class="product-card" data-id="5" data-name="Street Hoodie" data-price="70" data-category="clothing">
+        <img src="https://via.placeholder.com/300x300/222/fff?text=Street+Hoodie" alt="Trend">
+        <h3>Street Hoodie</h3>
+        <p>$70</p>
+        <button class="add-to-cart">Add to Cart</button>
+      </div>
+      <div class="product-card" data-id="6" data-name="Ripped Jeans" data-price="60" data-category="clothing">
+        <img src="https://via.placeholder.com/300x300/222/fff?text=Ripped+Jeans" alt="Trend">
+        <h3>Ripped Jeans</h3>
+        <p>$60</p>
+        <button class="add-to-cart">Add to Cart</button>
+      </div>
+      <div class="product-card" data-id="7" data-name="Canvas Sneakers" data-price="85" data-category="footwear">
+        <img src="https://via.placeholder.com/300x300/222/fff?text=Canvas+Sneakers" alt="Trend">
+        <h3>Canvas Sneakers</h3>
+        <p>$85</p>
+        <button class="add-to-cart">Add to Cart</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="accessories">
+    <h2>ACCESSORIES</h2>
+    <div class="product-grid">
+      <div class="product-card" data-id="8" data-name="Luxury Watch" data-price="199" data-category="accessories">
+        <img src="https://via.placeholder.com/300x300/222/fff?text=Luxury+Watch" alt="Watch">
+        <h3>Luxury Watch</h3>
+        <p>$199</p>
+        <button class="add-to-cart">Add to Cart</button>
+      </div>
+      <div class="product-card" data-id="9" data-name="Crossbody Purse" data-price="130" data-category="accessories">
+        <img src="https://via.placeholder.com/300x300/222/fff?text=Crossbody+Purse" alt="Purse">
+        <h3>Crossbody Purse</h3>
+        <p>$130</p>
+        <button class="add-to-cart">Add to Cart</button>
+      </div>
+      <div class="product-card" data-id="10" data-name="Gen-Z Shades" data-price="50" data-category="accessories">
+        <img src="https://via.placeholder.com/300x300/222/fff?text=Gen-Z+Shades" alt="Sunglasses">
+        <h3>Gen-Z Shades</h3>
+        <p>$50</p>
+        <button class="add-to-cart">Add to Cart</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="tees">
+    <h2>GRAPHIC TEES</h2>
+    <div class="product-grid">
+      <div class="product-card" data-id="11" data-name="Retro Print Tee" data-price="40" data-category="clothing">
+        <img src="https://via.placeholder.com/300x300/222/fff?text=Retro+Print+Tee" alt="Tee">
+        <h3>Retro Print Tee</h3>
+        <p>$40</p>
+        <button class="add-to-cart">Add to Cart</button>
+      </div>
+      <div class="product-card" data-id="12" data-name="Anime Graphic Tee" data-price="45" data-category="clothing">
+        <img src="https://via.placeholder.com/300x300/222/fff?text=Anime+Graphic+Tee" alt="Tee">
+        <h3>Anime Graphic Tee</h3>
+        <p>$45</p>
+        <button class="add-to-cart">Add to Cart</button>
+      </div>
+      <div class="product-card" data-id="13" data-name="Minimal Logo Tee" data-price="35" data-category="clothing">
+        <img src="https://via.placeholder.com/300x300/222/fff?text=Minimal+Logo+Tee" alt="Tee">
+        <h3>Minimal Logo Tee</h3>
+        <p>$35</p>
+        <button class="add-to-cart">Add to Cart</button>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <div class="footer-content">
+      <div class="footer-section">
+        <h2>CAELIS</h2>
+        <p>Redefining Gen-Z fashion with sneakers, purses, watches & more.</p>
+        <div class="socials">
+          <i class="fab fa-instagram" aria-label="Instagram"></i>
+          <i class="fab fa-facebook" aria-label="Facebook"></i>
+          <i class="fab fa-twitter" aria-label="Twitter"></i>
+        </div>
+      </div>
+      <div class="footer-section">
+        <h3>Contact Us</h3>
+        <p><i class="fas fa-phone"></i> +1 (895) 647-9800</p>
+        <p><i class="fas fa-envelope"></i> info@caelis.com</p>
+        <p><i class="fas fa-map-marker-alt"></i> 123 Fashion Street, NY 10001</p>
+      </div>
+      <div class="footer-section">
+        <h3>Newsletter</h3>
+        <p>Subscribe to get special offers and updates</p>
+        <div class="newsletter">
+          <input type="email" placeholder="Your email">
+          <button>Subscribe</button>
+        </div>
+      </div>
+    </div>
+    <p class="copyright">&copy; 2025 Caelis. All rights reserved.</p>
+  </footer>
+
+  <!-- Razorpay Script -->
+  <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>
