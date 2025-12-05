@@ -450,8 +450,9 @@
         <h3>Newsletter</h3>
         <p>Subscribe to get special offers and updates</p>
         <div class="newsletter">
-          <input type="email" placeholder="Your email">
-          <button>Subscribe</button>
+          <input type="email" id="newsletterEmail" placeholder="Your email">
+          <button id="subscribeBtn" onclick="subscribeToNewsletter()">Subscribe</button>
+          <p id="subscriptionMessage" style="display: none; margin-top: 10px;"></p>
         </div>
       </div>
     </div>

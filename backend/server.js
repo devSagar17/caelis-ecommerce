@@ -8,6 +8,8 @@ const hpp = require('hpp');
 const validator = require('validator');
 const connectDB = require('./config/db');
 const Order = require('./models/Order');
+const Subscription = require('./models/Subscription');
+const { sendSubscriptionNotification, sendOrderConfirmation } = require('./services/emailService');
 require('dotenv').config();
 
 // Connect to database
@@ -153,6 +155,19 @@ app.post('/api/create-order', async (req, res) => {
     
     // Log successful order creation
     console.log(`Order created: ${order.id} for amount ${order.amount}`);
+    
+    // Send order confirmation email
+    try {
+      await sendOrderConfirmation({
+        orderId: order.id,
+        amount: order.amount / 100,
+        customerEmail: sanitizedCustomerData.email,
+        products: sanitizedProducts
+      });
+    } catch (emailError) {
+      console.error('Failed to send order confirmation:', emailError);
+      // Don't fail the order if email fails
+    }
     
     // Return order details to frontend
     res.json({
@@ -342,6 +357,64 @@ app.get('/api/order/:orderId', async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to fetch order',
+      error: process.env.NODE_ENV === 'production' ? 'Internal server error' : error.message
+    });
+  }
+});
+
+// Subscribe to newsletter
+app.post('/api/subscribe', async (req, res) => {
+  try {
+    const { email } = req.body;
+    
+    // Validate email
+    if (!email || !validator.isEmail(email)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Valid email is required'
+      });
+    }
+    
+    // Sanitize email
+    const sanitizedEmail = validator.normalizeEmail(email);
+    
+    // Check if already subscribed
+    const existingSubscription = await Subscription.findOne({ email: sanitizedEmail });
+    
+    if (existingSubscription) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email already subscribed'
+      });
+    }
+    
+    // Create new subscription
+    const subscription = new Subscription({
+      email: sanitizedEmail
+    });
+    
+    await subscription.save();
+    
+    // Send notification to admin
+    try {
+      await sendSubscriptionNotification(sanitizedEmail);
+    } catch (emailError) {
+      console.error('Failed to send subscription notification:', emailError);
+      // Don't fail the subscription if email fails
+    }
+    
+    console.log(`New subscription: ${sanitizedEmail}`);
+    
+    res.json({
+      success: true,
+      message: 'Successfully subscribed to newsletter'
+    });
+    
+  } catch (error) {
+    console.error('Error subscribing:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to subscribe',
       error: process.env.NODE_ENV === 'production' ? 'Internal server error' : error.message
     });
   }
