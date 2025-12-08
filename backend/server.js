@@ -9,11 +9,13 @@ const validator = require('validator');
 const connectDB = require('./config/db');
 const Order = require('./models/Order');
 const Subscription = require('./models/Subscription');
+const Product = require('./models/Product');
 const { sendSubscriptionNotification, sendOrderConfirmation } = require('./services/emailService');
 require('dotenv').config();
 
 // Connect to database
-connectDB();
+// Temporarily disable database connection for testing
+// connectDB();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -38,7 +40,7 @@ app.use(hpp());
 
 // CORS configuration
 const corsOptions = {
-  origin: process.env.FRONTEND_URL || 'http://localhost:8000',
+  origin: process.env.FRONTEND_URL || ['http://localhost:8000', 'http://localhost:3000', null],
   credentials: true,
   optionsSuccessStatus: 200
 };
@@ -357,6 +359,212 @@ app.get('/api/order/:orderId', async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to fetch order',
+      error: process.env.NODE_ENV === 'production' ? 'Internal server error' : error.message
+    });
+  }
+});
+
+// Product Management Routes
+
+// Temporary in-memory storage for products (for testing without database)
+let tempProducts = [
+  { _id: '1', name: 'Sample Product 1', price: 29.99, category: 'clothing', image: 'images/sample1.jpg', description: 'Sample product for testing' },
+  { _id: '2', name: 'Sample Product 2', price: 39.99, category: 'accessories', image: 'images/sample2.jpg', description: 'Another sample product' }
+];
+
+let nextId = 3;
+
+// Get all products
+app.get('/api/products', async (req, res) => {
+  try {
+    // Return temporary products for testing
+    res.json({
+      success: true,
+      products: tempProducts
+    });
+  } catch (error) {
+    console.error('Error fetching products:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch products',
+      error: process.env.NODE_ENV === 'production' ? 'Internal server error' : error.message
+    });
+  }
+});
+
+// Add new product
+app.post('/api/products', async (req, res) => {
+  try {
+    const { name, price, category, image, description } = req.body;
+    
+    // Validate required fields
+    if (!name || !price || !category || !image) {
+      return res.status(400).json({
+        success: false,
+        message: 'Name, price, category, and image are required'
+      });
+    }
+    
+    // Validate price
+    const parsedPrice = parseFloat(price);
+    if (isNaN(parsedPrice) || parsedPrice < 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Valid price is required'
+      });
+    }
+    
+    // Validate category
+    const validCategories = ['clothing', 'accessories', 'footwear'];
+    if (!validCategories.includes(category)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid category'
+      });
+    }
+    
+    // Sanitize inputs
+    const sanitizedProduct = {
+      _id: nextId.toString(),
+      name: sanitizeInput(name),
+      price: parsedPrice,
+      category: sanitizeInput(category),
+      image: sanitizeInput(image),
+      description: description ? sanitizeInput(description) : '',
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    
+    // Add to temporary storage
+    tempProducts.push(sanitizedProduct);
+    nextId++;
+    
+    console.log(`New product added: ${sanitizedProduct.name}`);
+    
+    res.status(201).json({
+      success: true,
+      message: 'Product added successfully',
+      product: sanitizedProduct
+    });
+    
+  } catch (error) {
+    console.error('Error adding product:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to add product',
+      error: process.env.NODE_ENV === 'production' ? 'Internal server error' : error.message
+    });
+  }
+});
+
+// Update product
+app.put('/api/products/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, price, category, image, description, inStock } = req.body;
+    
+    // Validate product ID
+    if (!id) {
+      return res.status(400).json({
+        success: false,
+        message: 'Product ID is required'
+      });
+    }
+    
+    // Find product
+    const productIndex = tempProducts.findIndex(p => p._id === id);
+    if (productIndex === -1) {
+      return res.status(404).json({
+        success: false,
+        message: 'Product not found'
+      });
+    }
+    
+    // Prepare update data
+    const updateData = {};
+    
+    if (name) updateData.name = sanitizeInput(name);
+    if (price !== undefined) {
+      const parsedPrice = parseFloat(price);
+      if (!isNaN(parsedPrice) && parsedPrice >= 0) {
+        updateData.price = parsedPrice;
+      }
+    }
+    if (category) {
+      const validCategories = ['clothing', 'accessories', 'footwear'];
+      if (validCategories.includes(category)) {
+        updateData.category = sanitizeInput(category);
+      }
+    }
+    if (image) updateData.image = sanitizeInput(image);
+    if (description !== undefined) updateData.description = sanitizeInput(description);
+    if (inStock !== undefined) updateData.inStock = Boolean(inStock);
+    
+    // Update product
+    tempProducts[productIndex] = {
+      ...tempProducts[productIndex],
+      ...updateData,
+      updatedAt: new Date()
+    };
+    
+    console.log(`Product updated: ${tempProducts[productIndex].name}`);
+    
+    res.json({
+      success: true,
+      message: 'Product updated successfully',
+      product: tempProducts[productIndex]
+    });
+    
+  } catch (error) {
+    console.error('Error updating product:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to update product',
+      error: process.env.NODE_ENV === 'production' ? 'Internal server error' : error.message
+    });
+  }
+});
+
+// Delete product
+app.delete('/api/products/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    // Validate product ID
+    if (!id) {
+      return res.status(400).json({
+        success: false,
+        message: 'Product ID is required'
+      });
+    }
+    
+    // Find product
+    const productIndex = tempProducts.findIndex(p => p._id === id);
+    if (productIndex === -1) {
+      return res.status(404).json({
+        success: false,
+        message: 'Product not found'
+      });
+    }
+    
+    // Get product for response
+    const product = tempProducts[productIndex];
+    
+    // Delete product
+    tempProducts.splice(productIndex, 1);
+    
+    console.log(`Product deleted: ${product.name}`);
+    
+    res.json({
+      success: true,
+      message: 'Product deleted successfully'
+    });
+    
+  } catch (error) {
+    console.error('Error deleting product:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to delete product',
       error: process.env.NODE_ENV === 'production' ? 'Internal server error' : error.message
     });
   }

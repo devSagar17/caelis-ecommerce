@@ -96,6 +96,12 @@ npm start
 - **Method**: `POST`
 - **Description**: Receives real-time payment events from Razorpay
 
+### Product Management
+- **GET /api/products** - Get all products
+- **POST /api/products** - Add a new product
+- **PUT /api/products/:id** - Update a product
+- **DELETE /api/products/:id** - Delete a product
+
 ### Health Check
 - **URL**: `/api/health`
 - **Method**: `GET`
@@ -243,3 +249,80 @@ grep "ERROR" /var/log/nodejs/app.log
 ## Support
 
 For any issues or questions about the implementation, please refer to the Razorpay documentation or contact their support team.
+
+## Product Management
+
+### For Buyers/Non-Technical Users
+
+This e-commerce platform includes a simple admin panel for managing products without requiring technical knowledge:
+
+1. Open `admin.html` in your web browser
+2. Use the "Add New Product" form to add products:
+   - Enter product name, price, category, and image URL
+   - Optionally add a product description
+3. View and manage existing products in the "Manage Products" section
+4. Edit or delete products as needed
+
+### For Technical Users
+
+You can also manage products directly through the API endpoints:
+
+#### Add a Product (POST /api/products)
+```json
+{
+  "name": "Product Name",
+  "price": 99.99,
+  "category": "clothing",
+  "image": "images/products/product-image.jpg",
+  "description": "Product description"
+}
+```
+
+#### Update a Product (PUT /api/products/:id)
+```json
+{
+  "name": "Updated Product Name",
+  "price": 129.99
+}
+```
+
+#### Delete a Product (DELETE /api/products/:id)
+No body required, just send a DELETE request to the product ID endpoint.
+
+### Product Categories
+Available categories:
+- clothing
+- accessories
+- footwear
+
+### Image Management
+When adding products, ensure image URLs are accessible. For best results:
+1. Upload images to your server in the `images/products/` directory
+2. Organize images by category (e.g., `images/products/clothing/tshirt.jpg`)
+3. Use relative URLs in the product image field
+
+## Database Setup
+
+This application uses MongoDB for storing products, orders, and subscriptions. You have two options:
+
+### Option 1: Local MongoDB Installation
+1. Download and install MongoDB Community Server from [mongodb.com](https://www.mongodb.com/try/download/community)
+2. Start MongoDB service:
+   - On Windows: `net start MongoDB`
+   - On macOS/Linux: `sudo systemctl start mongod`
+3. The application will automatically connect to the local database at `mongodb://localhost:27017/ecommerce`
+
+### Option 2: Cloud MongoDB (Recommended for Production)
+1. Sign up for a free MongoDB Atlas account at [mongodb.com/cloud/atlas](https://www.mongodb.com/cloud/atlas)
+2. Create a new cluster and database
+3. Update the `.env` file with your MongoDB connection string:
+   ```
+   MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/ecommerce
+   ```
+
+### Troubleshooting Database Issues
+If you see connection errors:
+1. Ensure MongoDB is running
+2. Check that the `MONGODB_URI` in your `.env` file is correct
+3. Verify network connectivity if using a remote database
+4. Check firewall settings if using a local database

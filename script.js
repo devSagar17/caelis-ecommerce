@@ -1,20 +1,61 @@
-// Sample product data for search and filtering
-// In a production environment, this would come from a backend API
-const products = [
-  { id: 1, name: "Chunky Sneakers", price: 120, category: "footwear", image: "images/products/sneakers/chunky-sneakers.jpg" },
-  { id: 2, name: "Oversized Jacket", price: 150, category: "clothing", image: "images/products/clothing/oversized-jacket.jpg" },
-  { id: 3, name: "Leather Purse", price: 99, category: "accessories", image: "images/products/purses/leather-purse.jpg" },
-  { id: 4, name: "Minimal Watch", price: 80, category: "accessories", image: "images/products/watches/minimal-watch.jpg" },
-  { id: 5, name: "Street Hoodie", price: 70, category: "clothing", image: "images/products/clothing/street-hoodie.jpg" },
-  { id: 6, name: "Ripped Jeans", price: 60, category: "clothing", image: "images/products/clothing/ripped-jeans.jpg" },
-  { id: 7, name: "Canvas Sneakers", price: 85, category: "footwear", image: "images/products/sneakers/canvas-sneakers.jpg" },
-  { id: 8, name: "Luxury Watch", price: 199, category: "accessories", image: "images/products/watches/luxury-watch.jpg" },
-  { id: 9, name: "Crossbody Purse", price: 130, category: "accessories", image: "images/products/purses/crossbody-purse.jpg" },
-  { id: 10, name: "Gen-Z Shades", price: 50, category: "accessories", image: "images/products/genz-shades.jpg" },
-  { id: 11, name: "Retro Print Tee", price: 40, category: "clothing", image: "images/products/clothing/retro-print-tee.jpg" },
-  { id: 12, name: "Anime Graphic Tee", price: 45, category: "clothing", image: "images/products/clothing/anime-graphic-tee.jpg" },
-  { id: 13, name: "Minimal Logo Tee", price: 35, category: "clothing", image: "images/products/clothing/minimal-logo-tee.jpg" }
-];
+// Product data - initially empty, will be populated from backend API
+let products = [];
+
+// Fetch products from backend API
+async function fetchProducts() {
+  try {
+    const response = await fetch('http://localhost:3000/api/products');
+    const data = await response.json();
+    
+    if (data.success && data.products) {
+      // Convert backend product format to frontend format
+      products = data.products.map(product => ({
+        id: product._id,
+        name: product.name,
+        price: product.price,
+        category: product.category,
+        image: product.image
+      }));
+      console.log('Products loaded:', products);
+    } else {
+      console.error('Failed to load products:', data.message);
+      // Fallback to sample data if API fails
+      products = [
+        { id: 1, name: "Chunky Sneakers", price: 120, category: "footwear", image: "images/products/sneakers/chunky-sneakers.jpg" },
+        { id: 2, name: "Oversized Jacket", price: 150, category: "clothing", image: "images/products/clothing/oversized-jacket.jpg" },
+        { id: 3, name: "Leather Purse", price: 99, category: "accessories", image: "images/products/purses/leather-purse.jpg" },
+        { id: 4, name: "Minimal Watch", price: 80, category: "accessories", image: "images/products/watches/minimal-watch.jpg" },
+        { id: 5, name: "Street Hoodie", price: 70, category: "clothing", image: "images/products/clothing/street-hoodie.jpg" },
+        { id: 6, name: "Ripped Jeans", price: 60, category: "clothing", image: "images/products/clothing/ripped-jeans.jpg" },
+        { id: 7, name: "Canvas Sneakers", price: 85, category: "footwear", image: "images/products/sneakers/canvas-sneakers.jpg" },
+        { id: 8, name: "Luxury Watch", price: 199, category: "accessories", image: "images/products/watches/luxury-watch.jpg" },
+        { id: 9, name: "Crossbody Purse", price: 130, category: "accessories", image: "images/products/purses/crossbody-purse.jpg" },
+        { id: 10, name: "Gen-Z Shades", price: 50, category: "accessories", image: "images/products/genz-shades.jpg" },
+        { id: 11, name: "Retro Print Tee", price: 40, category: "clothing", image: "images/products/clothing/retro-print-tee.jpg" },
+        { id: 12, name: "Anime Graphic Tee", price: 45, category: "clothing", image: "images/products/clothing/anime-graphic-tee.jpg" },
+        { id: 13, name: "Minimal Logo Tee", price: 35, category: "clothing", image: "images/products/clothing/minimal-logo-tee.jpg" }
+      ];
+    }
+  } catch (error) {
+    console.error('Error fetching products:', error);
+    // Fallback to sample data if API fails
+    products = [
+      { id: 1, name: "Chunky Sneakers", price: 120, category: "footwear", image: "images/products/sneakers/chunky-sneakers.jpg" },
+      { id: 2, name: "Oversized Jacket", price: 150, category: "clothing", image: "images/products/clothing/oversized-jacket.jpg" },
+      { id: 3, name: "Leather Purse", price: 99, category: "accessories", image: "images/products/purses/leather-purse.jpg" },
+      { id: 4, name: "Minimal Watch", price: 80, category: "accessories", image: "images/products/watches/minimal-watch.jpg" },
+      { id: 5, name: "Street Hoodie", price: 70, category: "clothing", image: "images/products/clothing/street-hoodie.jpg" },
+      { id: 6, name: "Ripped Jeans", price: 60, category: "clothing", image: "images/products/clothing/ripped-jeans.jpg" },
+      { id: 7, name: "Canvas Sneakers", price: 85, category: "footwear", image: "images/products/sneakers/canvas-sneakers.jpg" },
+      { id: 8, name: "Luxury Watch", price: 199, category: "accessories", image: "images/products/watches/luxury-watch.jpg" },
+      { id: 9, name: "Crossbody Purse", price: 130, category: "accessories", image: "images/products/purses/crossbody-purse.jpg" },
+      { id: 10, name: "Gen-Z Shades", price: 50, category: "accessories", image: "images/products/genz-shades.jpg" },
+      { id: 11, name: "Retro Print Tee", price: 40, category: "clothing", image: "images/products/clothing/retro-print-tee.jpg" },
+      { id: 12, name: "Anime Graphic Tee", price: 45, category: "clothing", image: "images/products/clothing/anime-graphic-tee.jpg" },
+      { id: 13, name: "Minimal Logo Tee", price: 35, category: "clothing", image: "images/products/clothing/minimal-logo-tee.jpg" }
+    ];
+  }
+}
 
 // Utility function to sanitize user inputs
 function sanitizeInput(input) {
@@ -50,8 +91,11 @@ function showSlide(index) {
   slides.style.transform = `translateX(-${currentIndex * 100}%)`;
 }
 
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', async function() {
   console.log("DOM loaded, initializing components...");
+  
+  // Fetch products from backend
+  await fetchProducts();
   
   // Test: Log all category cards immediately
   console.log("Testing category card detection:");

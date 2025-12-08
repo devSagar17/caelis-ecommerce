@@ -1,0 +1,32 @@
+# MongoDB Atlas Setup Instructions
+
+## Important Next Steps
+
+1. **Replace the placeholder password in the .env file:**
+   - Open `c:\Users\mis\Downloads\SHOPPING-ECOMMERCE\backend\.env`
+   - Find the line: `MONGODB_URI=mongodb+srv://sagardhapate16_db_user:<db_password>@cluster0.ewa2x4r.mongodb.net/ecommerce?retryWrites=true&w=majority`
+   - Replace `<db_password>` with your actual MongoDB database user password
+
+2. **Ensure your MongoDB Atlas cluster is properly configured:**
+   - Make sure you have a database user named `sagardhapate16_db_user`
+   - Ensure the user has read/write permissions
+   - Verify that your IP address is whitelisted in the Network Access settings
+
+3. **Restart the backend server after making changes:**
+   - Stop the current server (Ctrl+C in the terminal)
+   - Start it again with: `npm start` from the backend directory
+
+## Troubleshooting
+
+If you continue to see authentication errors:
+
+1. Double-check your database user password
+2. Verify that the database user exists and has proper permissions
+3. Ensure your IP is whitelisted in MongoDB Atlas
+4. Check that you're using the correct cluster URL
+
+## Testing the Connection
+
+After updating the password and restarting the server, you should see a successful MongoDB connection message instead of the "bad auth" error.
+
+For any issues with MongoDB Atlas setup, please refer to the MongoDB Atlas documentation or contact MongoDB support.
