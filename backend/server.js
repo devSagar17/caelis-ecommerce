@@ -14,8 +14,7 @@ const { sendSubscriptionNotification, sendOrderConfirmation } = require('./servi
 require('dotenv').config();
 
 // Connect to database
-// Temporarily disable database connection for testing
-// connectDB();
+connectDB();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
