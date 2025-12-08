@@ -14,7 +14,15 @@ const { sendSubscriptionNotification, sendOrderConfirmation } = require('./servi
 require('dotenv').config();
 
 // Connect to database
-connectDB();
+let dbConnected = false;
+connectDB().then(() => {
+  dbConnected = true;
+  console.log('Database connected successfully');
+}).catch(err => {
+  console.error('Database connection failed:', err.message);
+  console.log('Continuing to start server without database connection...');
+  // Server will still start even if DB connection fails
+});
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -134,25 +142,35 @@ app.post('/api/create-order', async (req, res) => {
     // Create order using Razorpay API
     const order = await razorpay.orders.create(options);
     
-    // Save order to database
-    const newOrder = new Order({
-      orderId: order.id,
-      amount: order.amount / 100, // Convert back to rupees
-      currency: order.currency,
-      status: 'created',
-      customerEmail: sanitizedCustomerData.email,
-      customerName: sanitizedCustomerData.name,
-      shippingAddress: {
-        street: sanitizedCustomerData.address,
-        city: sanitizedCustomerData.city,
-        state: sanitizedCustomerData.state,
-        zipCode: sanitizedCustomerData.zipCode,
-        country: sanitizedCustomerData.country
-      },
-      products: sanitizedProducts
-    });
-    
-    await newOrder.save();
+    // Save order to database only if connected
+    if (dbConnected) {
+      try {
+        const newOrder = new Order({
+          orderId: order.id,
+          amount: order.amount / 100, // Convert back to rupees
+          currency: order.currency,
+          status: 'created',
+          customerEmail: sanitizedCustomerData.email,
+          customerName: sanitizedCustomerData.name,
+          shippingAddress: {
+            street: sanitizedCustomerData.address,
+            city: sanitizedCustomerData.city,
+            state: sanitizedCustomerData.state,
+            zipCode: sanitizedCustomerData.zipCode,
+            country: sanitizedCustomerData.country
+          },
+          products: sanitizedProducts
+        });
+        
+        await newOrder.save();
+        console.log(`Order saved to database: ${order.id}`);
+      } catch (dbError) {
+        console.error('Failed to save order to database:', dbError.message);
+        // Continue with the response even if DB save fails
+      }
+    } else {
+      console.log(`Order created but not saved to database (DB not connected): ${order.id}`);
+    }
     
     // Log successful order creation
     console.log(`Order created: ${order.id} for amount ${order.amount}`);
@@ -221,13 +239,22 @@ app.post('/api/verify-payment', async (req, res) => {
     
     // Compare signatures
     if (digest === sanitizedSignature) {
-      // Payment is valid, update order status
-      const order = await Order.findOne({ orderId: sanitizedOrderId });
-      if (order) {
-        order.status = 'paid';
-        order.paymentId = sanitizedPaymentId;
-        await order.save();
-        console.log(`Order ${sanitizedOrderId} marked as paid`);
+      // Payment is valid, update order status only if database is connected
+      if (dbConnected) {
+        try {
+          const order = await Order.findOne({ orderId: sanitizedOrderId });
+          if (order) {
+            order.status = 'paid';
+            order.paymentId = sanitizedPaymentId;
+            await order.save();
+            console.log(`Order ${sanitizedOrderId} marked as paid`);
+          }
+        } catch (dbError) {
+          console.error('Failed to update order in database:', dbError.message);
+          // Continue with success response even if DB update fails
+        }
+      } else {
+        console.log(`Payment verified but order not updated in database (DB not connected): ${sanitizedOrderId}`);
       }
       
       console.log(`Payment verified successfully for order: ${sanitizedOrderId}`);
@@ -236,12 +263,21 @@ app.post('/api/verify-payment', async (req, res) => {
         message: 'Payment verified successfully'
       });
     } else {
-      // Invalid payment, update order status
-      const order = await Order.findOne({ orderId: sanitizedOrderId });
-      if (order) {
-        order.status = 'failed';
-        await order.save();
-        console.log(`Order ${sanitizedOrderId} marked as failed`);
+      // Invalid payment, update order status only if database is connected
+      if (dbConnected) {
+        try {
+          const order = await Order.findOne({ orderId: sanitizedOrderId });
+          if (order) {
+            order.status = 'failed';
+            await order.save();
+            console.log(`Order ${sanitizedOrderId} marked as failed`);
+          }
+        } catch (dbError) {
+          console.error('Failed to update order in database:', dbError.message);
+          // Continue with error response even if DB update fails
+        }
+      } else {
+        console.log(`Payment failed but order not updated in database (DB not connected): ${sanitizedOrderId}`);
       }
       
       console.warn(`Invalid payment signature for order: ${sanitizedOrderId}`);
@@ -287,40 +323,49 @@ app.post('/api/webhook', express.raw({type: 'application/json'}), async (req, re
       // Log the event
       console.log(`Webhook received: ${event.event}`);
       
-      // Handle different events
-      switch (event.event) {
-        case 'payment.captured':
-          console.log('Payment captured:', event.payload.payment.entity);
-          // Update order status in database
-          const paymentEntity = event.payload.payment.entity;
-          const order = await Order.findOne({ orderId: paymentEntity.order_id });
-          if (order) {
-            order.status = 'paid';
-            order.paymentId = paymentEntity.id;
-            await order.save();
-            console.log(`Order ${paymentEntity.order_id} marked as paid in webhook`);
+      // Handle different events only if database is connected
+      if (dbConnected) {
+        try {
+          switch (event.event) {
+            case 'payment.captured':
+              console.log('Payment captured:', event.payload.payment.entity);
+              // Update order status in database
+              const paymentEntity = event.payload.payment.entity;
+              const order = await Order.findOne({ orderId: paymentEntity.order_id });
+              if (order) {
+                order.status = 'paid';
+                order.paymentId = paymentEntity.id;
+                await order.save();
+                console.log(`Order ${paymentEntity.order_id} marked as paid in webhook`);
+              }
+              break;
+              
+            case 'payment.failed':
+              console.log('Payment failed:', event.payload.payment.entity);
+              // Update order status in database
+              const failedPaymentEntity = event.payload.payment.entity;
+              const failedOrder = await Order.findOne({ orderId: failedPaymentEntity.order_id });
+              if (failedOrder) {
+                failedOrder.status = 'failed';
+                await failedOrder.save();
+                console.log(`Order ${failedPaymentEntity.order_id} marked as failed in webhook`);
+              }
+              break;
+              
+            case 'order.paid':
+              console.log('Order paid:', event.payload.order.entity);
+              // Handle order completion
+              break;
+              
+            default:
+              console.log('Unhandled event:', event.event);
           }
-          break;
-          
-        case 'payment.failed':
-          console.log('Payment failed:', event.payload.payment.entity);
-          // Update order status in database
-          const failedPaymentEntity = event.payload.payment.entity;
-          const failedOrder = await Order.findOne({ orderId: failedPaymentEntity.order_id });
-          if (failedOrder) {
-            failedOrder.status = 'failed';
-            await failedOrder.save();
-            console.log(`Order ${failedPaymentEntity.order_id} marked as failed in webhook`);
-          }
-          break;
-          
-        case 'order.paid':
-          console.log('Order paid:', event.payload.order.entity);
-          // Handle order completion
-          break;
-          
-        default:
-          console.log('Unhandled event:', event.event);
+        } catch (dbError) {
+          console.error('Database error in webhook processing:', dbError.message);
+          // Continue with success response even if DB operations fail
+        }
+      } else {
+        console.log('Webhook received but database operations skipped (DB not connected)');
       }
       
       res.json({ status: 'ok' });
@@ -338,6 +383,14 @@ app.post('/api/webhook', express.raw({type: 'application/json'}), async (req, re
 // Get order by ID
 app.get('/api/order/:orderId', async (req, res) => {
   try {
+    // Return error if database is not connected
+    if (!dbConnected) {
+      return res.status(503).json({
+        success: false,
+        message: 'Database not available'
+      });
+    }
+    
     const { orderId } = req.params;
     const sanitizedOrderId = sanitizeInput(orderId);
     
@@ -376,11 +429,30 @@ let nextId = 3;
 // Get all products
 app.get('/api/products', async (req, res) => {
   try {
-    // Return temporary products for testing
-    res.json({
-      success: true,
-      products: tempProducts
-    });
+    // If database is connected, fetch from database
+    // Otherwise, return temporary products
+    if (dbConnected) {
+      try {
+        const products = await Product.find({});
+        res.json({
+          success: true,
+          products
+        });
+      } catch (dbError) {
+        console.error('Error fetching products from database:', dbError.message);
+        // Fall back to temporary products
+        res.json({
+          success: true,
+          products: tempProducts
+        });
+      }
+    } else {
+      // Return temporary products for testing
+      res.json({
+        success: true,
+        products: tempProducts
+      });
+    }
   } catch (error) {
     console.error('Error fetching products:', error);
     res.status(500).json({
@@ -434,17 +506,44 @@ app.post('/api/products', async (req, res) => {
       updatedAt: new Date()
     };
     
-    // Add to temporary storage
-    tempProducts.push(sanitizedProduct);
-    nextId++;
-    
-    console.log(`New product added: ${sanitizedProduct.name}`);
-    
-    res.status(201).json({
-      success: true,
-      message: 'Product added successfully',
-      product: sanitizedProduct
-    });
+    // If database is connected, save to database
+    // Otherwise, add to temporary storage
+    if (dbConnected) {
+      try {
+        const product = new Product(sanitizedProduct);
+        await product.save();
+        console.log(`New product added to database: ${sanitizedProduct.name}`);
+        
+        res.status(201).json({
+          success: true,
+          message: 'Product added successfully',
+          product
+        });
+      } catch (dbError) {
+        console.error('Error saving product to database:', dbError.message);
+        // Fall back to temporary storage
+        tempProducts.push(sanitizedProduct);
+        nextId++;
+        
+        res.status(201).json({
+          success: true,
+          message: 'Product added to temporary storage',
+          product: sanitizedProduct
+        });
+      }
+    } else {
+      // Add to temporary storage
+      tempProducts.push(sanitizedProduct);
+      nextId++;
+      
+      console.log(`New product added to temporary storage: ${sanitizedProduct.name}`);
+      
+      res.status(201).json({
+        success: true,
+        message: 'Product added successfully',
+        product: sanitizedProduct
+      });
+    }
     
   } catch (error) {
     console.error('Error adding product:', error);
@@ -470,49 +569,140 @@ app.put('/api/products/:id', async (req, res) => {
       });
     }
     
-    // Find product
-    const productIndex = tempProducts.findIndex(p => p._id === id);
-    if (productIndex === -1) {
-      return res.status(404).json({
-        success: false,
-        message: 'Product not found'
+    // If database is connected, update in database
+    // Otherwise, update in temporary storage
+    if (dbConnected) {
+      try {
+        // Prepare update data
+        const updateData = {};
+        
+        if (name) updateData.name = sanitizeInput(name);
+        if (price !== undefined) {
+          const parsedPrice = parseFloat(price);
+          if (!isNaN(parsedPrice) && parsedPrice >= 0) {
+            updateData.price = parsedPrice;
+          }
+        }
+        if (category) {
+          const validCategories = ['clothing', 'accessories', 'footwear'];
+          if (validCategories.includes(category)) {
+            updateData.category = sanitizeInput(category);
+          }
+        }
+        if (image) updateData.image = sanitizeInput(image);
+        if (description !== undefined) updateData.description = sanitizeInput(description);
+        if (inStock !== undefined) updateData.inStock = Boolean(inStock);
+        
+        // Add updatedAt timestamp
+        updateData.updatedAt = new Date();
+        
+        const product = await Product.findByIdAndUpdate(id, updateData, { new: true });
+        
+        if (!product) {
+          return res.status(404).json({
+            success: false,
+            message: 'Product not found'
+          });
+        }
+        
+        console.log(`Product updated in database: ${product.name}`);
+        
+        res.json({
+          success: true,
+          message: 'Product updated successfully',
+          product
+        });
+      } catch (dbError) {
+        console.error('Error updating product in database:', dbError.message);
+        // Fall back to temporary storage
+        const productIndex = tempProducts.findIndex(p => p._id === id);
+        if (productIndex === -1) {
+          return res.status(404).json({
+            success: false,
+            message: 'Product not found'
+          });
+        }
+        
+        // Prepare update data for temporary storage
+        const updateData = {};
+        
+        if (name) updateData.name = sanitizeInput(name);
+        if (price !== undefined) {
+          const parsedPrice = parseFloat(price);
+          if (!isNaN(parsedPrice) && parsedPrice >= 0) {
+            updateData.price = parsedPrice;
+          }
+        }
+        if (category) {
+          const validCategories = ['clothing', 'accessories', 'footwear'];
+          if (validCategories.includes(category)) {
+            updateData.category = sanitizeInput(category);
+          }
+        }
+        if (image) updateData.image = sanitizeInput(image);
+        if (description !== undefined) updateData.description = sanitizeInput(description);
+        if (inStock !== undefined) updateData.inStock = Boolean(inStock);
+        
+        // Update product in temporary storage
+        tempProducts[productIndex] = {
+          ...tempProducts[productIndex],
+          ...updateData,
+          updatedAt: new Date()
+        };
+        
+        console.log(`Product updated in temporary storage: ${tempProducts[productIndex].name}`);
+        
+        res.json({
+          success: true,
+          message: 'Product updated in temporary storage',
+          product: tempProducts[productIndex]
+        });
+      }
+    } else {
+      // Update in temporary storage
+      const productIndex = tempProducts.findIndex(p => p._id === id);
+      if (productIndex === -1) {
+        return res.status(404).json({
+          success: false,
+          message: 'Product not found'
+        });
+      }
+      
+      // Prepare update data
+      const updateData = {};
+      
+      if (name) updateData.name = sanitizeInput(name);
+      if (price !== undefined) {
+        const parsedPrice = parseFloat(price);
+        if (!isNaN(parsedPrice) && parsedPrice >= 0) {
+          updateData.price = parsedPrice;
+        }
+      }
+      if (category) {
+        const validCategories = ['clothing', 'accessories', 'footwear'];
+        if (validCategories.includes(category)) {
+          updateData.category = sanitizeInput(category);
+        }
+      }
+      if (image) updateData.image = sanitizeInput(image);
+      if (description !== undefined) updateData.description = sanitizeInput(description);
+      if (inStock !== undefined) updateData.inStock = Boolean(inStock);
+      
+      // Update product
+      tempProducts[productIndex] = {
+        ...tempProducts[productIndex],
+        ...updateData,
+        updatedAt: new Date()
+      };
+      
+      console.log(`Product updated in temporary storage: ${tempProducts[productIndex].name}`);
+      
+      res.json({
+        success: true,
+        message: 'Product updated successfully',
+        product: tempProducts[productIndex]
       });
     }
-    
-    // Prepare update data
-    const updateData = {};
-    
-    if (name) updateData.name = sanitizeInput(name);
-    if (price !== undefined) {
-      const parsedPrice = parseFloat(price);
-      if (!isNaN(parsedPrice) && parsedPrice >= 0) {
-        updateData.price = parsedPrice;
-      }
-    }
-    if (category) {
-      const validCategories = ['clothing', 'accessories', 'footwear'];
-      if (validCategories.includes(category)) {
-        updateData.category = sanitizeInput(category);
-      }
-    }
-    if (image) updateData.image = sanitizeInput(image);
-    if (description !== undefined) updateData.description = sanitizeInput(description);
-    if (inStock !== undefined) updateData.inStock = Boolean(inStock);
-    
-    // Update product
-    tempProducts[productIndex] = {
-      ...tempProducts[productIndex],
-      ...updateData,
-      updatedAt: new Date()
-    };
-    
-    console.log(`Product updated: ${tempProducts[productIndex].name}`);
-    
-    res.json({
-      success: true,
-      message: 'Product updated successfully',
-      product: tempProducts[productIndex]
-    });
     
   } catch (error) {
     console.error('Error updating product:', error);
@@ -537,27 +727,72 @@ app.delete('/api/products/:id', async (req, res) => {
       });
     }
     
-    // Find product
-    const productIndex = tempProducts.findIndex(p => p._id === id);
-    if (productIndex === -1) {
-      return res.status(404).json({
-        success: false,
-        message: 'Product not found'
+    // If database is connected, delete from database
+    // Otherwise, delete from temporary storage
+    if (dbConnected) {
+      try {
+        const product = await Product.findByIdAndDelete(id);
+        
+        if (!product) {
+          return res.status(404).json({
+            success: false,
+            message: 'Product not found'
+          });
+        }
+        
+        console.log(`Product deleted from database: ${product.name}`);
+        
+        res.json({
+          success: true,
+          message: 'Product deleted successfully'
+        });
+      } catch (dbError) {
+        console.error('Error deleting product from database:', dbError.message);
+        // Fall back to temporary storage
+        const productIndex = tempProducts.findIndex(p => p._id === id);
+        if (productIndex === -1) {
+          return res.status(404).json({
+            success: false,
+            message: 'Product not found'
+          });
+        }
+        
+        // Get product for response
+        const product = tempProducts[productIndex];
+        
+        // Delete product from temporary storage
+        tempProducts.splice(productIndex, 1);
+        
+        console.log(`Product deleted from temporary storage: ${product.name}`);
+        
+        res.json({
+          success: true,
+          message: 'Product deleted from temporary storage'
+        });
+      }
+    } else {
+      // Delete from temporary storage
+      const productIndex = tempProducts.findIndex(p => p._id === id);
+      if (productIndex === -1) {
+        return res.status(404).json({
+          success: false,
+          message: 'Product not found'
+        });
+      }
+      
+      // Get product for response
+      const product = tempProducts[productIndex];
+      
+      // Delete product
+      tempProducts.splice(productIndex, 1);
+      
+      console.log(`Product deleted from temporary storage: ${product.name}`);
+      
+      res.json({
+        success: true,
+        message: 'Product deleted successfully'
       });
     }
-    
-    // Get product for response
-    const product = tempProducts[productIndex];
-    
-    // Delete product
-    tempProducts.splice(productIndex, 1);
-    
-    console.log(`Product deleted: ${product.name}`);
-    
-    res.json({
-      success: true,
-      message: 'Product deleted successfully'
-    });
     
   } catch (error) {
     console.error('Error deleting product:', error);
@@ -585,37 +820,57 @@ app.post('/api/subscribe', async (req, res) => {
     // Sanitize email
     const sanitizedEmail = validator.normalizeEmail(email);
     
-    // Check if already subscribed
-    const existingSubscription = await Subscription.findOne({ email: sanitizedEmail });
-    
-    if (existingSubscription) {
-      return res.status(400).json({
-        success: false,
-        message: 'Email already subscribed'
+    // If database is connected, check for existing subscription and save
+    // Otherwise, just return success
+    if (dbConnected) {
+      try {
+        // Check if already subscribed
+        const existingSubscription = await Subscription.findOne({ email: sanitizedEmail });
+        
+        if (existingSubscription) {
+          return res.status(400).json({
+            success: false,
+            message: 'Email already subscribed'
+          });
+        }
+        
+        // Create new subscription
+        const subscription = new Subscription({
+          email: sanitizedEmail
+        });
+        
+        await subscription.save();
+        
+        // Send notification to admin
+        try {
+          await sendSubscriptionNotification(sanitizedEmail);
+        } catch (emailError) {
+          console.error('Failed to send subscription notification:', emailError);
+          // Don't fail the subscription if email fails
+        }
+        
+        console.log(`New subscription: ${sanitizedEmail}`);
+        
+        res.json({
+          success: true,
+          message: 'Successfully subscribed to newsletter'
+        });
+      } catch (dbError) {
+        console.error('Database error in subscription:', dbError.message);
+        // Still return success to avoid breaking the user experience
+        res.json({
+          success: true,
+          message: 'Successfully subscribed to newsletter (database unavailable)'
+        });
+      }
+    } else {
+      console.log(`New subscription (no database): ${sanitizedEmail}`);
+      
+      res.json({
+        success: true,
+        message: 'Successfully subscribed to newsletter'
       });
     }
-    
-    // Create new subscription
-    const subscription = new Subscription({
-      email: sanitizedEmail
-    });
-    
-    await subscription.save();
-    
-    // Send notification to admin
-    try {
-      await sendSubscriptionNotification(sanitizedEmail);
-    } catch (emailError) {
-      console.error('Failed to send subscription notification:', emailError);
-      // Don't fail the subscription if email fails
-    }
-    
-    console.log(`New subscription: ${sanitizedEmail}`);
-    
-    res.json({
-      success: true,
-      message: 'Successfully subscribed to newsletter'
-    });
     
   } catch (error) {
     console.error('Error subscribing:', error);
