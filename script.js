@@ -979,37 +979,75 @@ function filterByCategoryType(category) {
 }
 
 // Subscribe to newsletter
-document.getElementById('newsletterForm').addEventListener('submit', async function(e) {
-  e.preventDefault();
+function subscribeToNewsletter() {
+  const emailInput = document.getElementById('newsletterEmail');
+  const subscribeBtn = document.getElementById('subscribeBtn');
+  const messageElement = document.getElementById('subscriptionMessage');
   
-  const email = document.getElementById('newsletterEmail').value;
-  if (!validateEmail(email)) {
-    alert('Please enter a valid email address');
+  const email = emailInput.value.trim();
+  
+  // Validate email
+  if (!email) {
+    showMessage('Please enter your email address.', 'error');
     return;
   }
   
-  try {
-    const response = await fetch(`${API_BASE_URL}/api/subscribe`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ email: email })
-    });
-    
-    const result = await response.json();
-    
-    if (result.success) {
-      alert('Thank you for subscribing!');
-      document.getElementById('newsletterEmail').value = '';
-    } else {
-      alert(result.message || 'Failed to subscribe. Please try again.');
-    }
-  } catch (error) {
-    console.error('Subscription error:', error);
-    alert('Network error. Please try again.');
+  // Simple email validation
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    showMessage('Please enter a valid email address.', 'error');
+    return;
   }
-});
+  
+  // Disable button and show loading state
+  subscribeBtn.disabled = true;
+  subscribeBtn.textContent = 'Subscribing...';
+  
+  // Send subscription request to backend
+  fetch(`${API_BASE_URL}/api/subscribe`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ email }),
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.success) {
+      showMessage('Thank you for subscribing!', 'success');
+      emailInput.value = '';
+    } else {
+      showMessage(data.message || 'Failed to subscribe. Please try again.', 'error');
+    }
+  })
+  .catch(error => {
+    console.error('Subscription error:', error);
+    showMessage('Network error. Please try again.', 'error');
+  })
+  .finally(() => {
+    // Re-enable button
+    subscribeBtn.disabled = false;
+    subscribeBtn.textContent = 'Subscribe';
+  });
+}
+
+// Show message for newsletter subscription
+function showMessage(message, type) {
+  const messageElement = document.getElementById('subscriptionMessage');
+  messageElement.textContent = message;
+  messageElement.style.display = 'block';
+  
+  if (type === 'success') {
+    messageElement.style.color = '#4CAF50';
+  } else {
+    messageElement.style.color = '#f44336';
+  }
+  
+  // Hide message after 5 seconds
+  setTimeout(() => {
+    messageElement.style.display = 'none';
+  }, 5000);
+}
 
 // Utility function to validate email format
 function validateEmail(email) {
