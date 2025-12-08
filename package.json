@@ -1,0 +1,21 @@
+{
+  "name": "caelis-ecommerce",
+  "version": "1.0.0",
+  "description": "A fully responsive e-commerce website for a clothing brand",
+  "main": "index.js",
+  "scripts": {
+    "start": "cd backend && npm start",
+    "dev": "cd backend && npm run dev",
+    "build": "cd backend && npm install",
+    "postinstall": "cd backend && npm install"
+  },
+  "keywords": [
+    "ecommerce",
+    "shopping",
+    "nodejs",
+    "express",
+    "mongodb"
+  ],
+  "author": "Caelis E-commerce Team",
+  "license": "MIT"
+}
