@@ -1,10 +1,13 @@
+// API Base URL - Update this to your deployed backend URL for production
+const API_BASE_URL = 'http://localhost:3000';
+
 // Product data - initially empty, will be populated from backend API
 let products = [];
 
 // Fetch products from backend API
-async function fetchProducts() {
+async function fetchProductsFromAPI() {
   try {
-    const response = await fetch('http://localhost:3000/api/products');
+    const response = await fetch(`${API_BASE_URL}/api/products`);
     const data = await response.json();
     
     if (data.success && data.products) {
@@ -95,7 +98,7 @@ document.addEventListener('DOMContentLoaded', async function() {
   console.log("DOM loaded, initializing components...");
   
   // Fetch products from backend
-  await fetchProducts();
+  await fetchProductsFromAPI();
   
   // Test: Log all category cards immediately
   console.log("Testing category card detection:");
@@ -600,7 +603,7 @@ async function processRazorpayPayment() {
     }
     
     // Create order on backend
-    const response = await fetch('http://localhost:3000/api/create-order', {
+    const response = await fetch(`${API_BASE_URL}/api/create-order`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -664,7 +667,7 @@ async function verifyPayment(paymentResponse) {
     }
     
     // Send payment details to backend for verification
-    const response = await fetch('http://localhost:3000/api/verify-payment', {
+    const response = await fetch(`${API_BASE_URL}/api/verify-payment`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -976,72 +979,40 @@ function filterByCategoryType(category) {
 }
 
 // Subscribe to newsletter
-function subscribeToNewsletter() {
-  const emailInput = document.getElementById('newsletterEmail');
-  const subscribeBtn = document.getElementById('subscribeBtn');
-  const messageElement = document.getElementById('subscriptionMessage');
+document.getElementById('newsletterForm').addEventListener('submit', async function(e) {
+  e.preventDefault();
   
-  const email = emailInput.value.trim();
-  
-  // Validate email
-  if (!email) {
-    showMessage('Please enter your email address.', 'error');
+  const email = document.getElementById('newsletterEmail').value;
+  if (!validateEmail(email)) {
+    alert('Please enter a valid email address');
     return;
   }
   
-  // Simple email validation
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!emailRegex.test(email)) {
-    showMessage('Please enter a valid email address.', 'error');
-    return;
-  }
-  
-  // Disable button and show loading state
-  subscribeBtn.disabled = true;
-  subscribeBtn.textContent = 'Subscribing...';
-  
-  // Send subscription request to backend
-  fetch('http://localhost:3000/api/subscribe', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ email }),
-  })
-  .then(response => response.json())
-  .then(data => {
-    if (data.success) {
-      showMessage('Thank you for subscribing!', 'success');
-      emailInput.value = '';
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/subscribe`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ email: email })
+    });
+    
+    const result = await response.json();
+    
+    if (result.success) {
+      alert('Thank you for subscribing!');
+      document.getElementById('newsletterEmail').value = '';
     } else {
-      showMessage(data.message || 'Failed to subscribe. Please try again.', 'error');
+      alert(result.message || 'Failed to subscribe. Please try again.');
     }
-  })
-  .catch(error => {
+  } catch (error) {
     console.error('Subscription error:', error);
-    showMessage('Network error. Please try again.', 'error');
-  })
-  .finally(() => {
-    // Re-enable button
-    subscribeBtn.disabled = false;
-    subscribeBtn.textContent = 'Subscribe';
-  });
-}
-
-// Show message for newsletter subscription
-function showMessage(message, type) {
-  const messageElement = document.getElementById('subscriptionMessage');
-  messageElement.textContent = message;
-  messageElement.style.display = 'block';
-  
-  if (type === 'success') {
-    messageElement.style.color = '#4CAF50';
-  } else {
-    messageElement.style.color = '#f44336';
+    alert('Network error. Please try again.');
   }
-  
-  // Hide message after 5 seconds
-  setTimeout(() => {
-    messageElement.style.display = 'none';
-  }, 5000);
+});
+
+// Utility function to validate email format
+function validateEmail(email) {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email);
 }
