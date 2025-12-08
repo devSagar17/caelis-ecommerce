@@ -2,6 +2,115 @@
 
 A fully responsive e-commerce website for a clothing brand with integrated payment processing via Razorpay, UPI, and credit/debit cards.
 
+## Build Commands
+
+All the essential build and run commands for local development and production deployment.
+
+### Local Development Commands
+
+1. **Install All Dependencies**
+   ```bash
+   # Backend dependencies
+   cd backend
+   npm install
+   cd ..
+   ```
+
+2. **Start Development Servers**
+   ```bash
+   # Option 1: Using the batch file (Windows)
+   start_servers.bat
+
+   # Option 2: Using the JavaScript script
+   node start_servers.js
+
+   # Option 3: Manual start
+   # Terminal 1 - Start backend
+   cd backend
+   npm run dev
+
+   # Terminal 2 - Start frontend
+   python -m http.server 8000
+   ```
+
+3. **Individual Component Commands**
+
+   **Backend Commands (in `backend` directory):**
+   ```bash
+   # Install dependencies
+   npm install
+
+   # Start in development mode (with auto-restart)
+   npm run dev
+
+   # Start in production mode
+   npm start
+
+   # Start with production environment explicitly set
+   npm run prod
+   ```
+
+   **Frontend Commands (in root directory):**
+   ```bash
+   # Serve using Python
+   python -m http.server 8000
+
+   # Serve using Node.js (install serve first)
+   npx serve -s . -p 8000
+   ```
+
+### Deployment Commands
+
+**Backend Deployment (Render.com)**
+```bash
+# The render.yaml file configures deployment
+# No specific build command needed, Render handles:
+# Build: npm install
+# Start: npm start
+```
+
+**Frontend Deployment (Netlify)**
+```bash
+# No build process needed for static site
+# Netlify serves directly from repository
+```
+
+### Testing Commands
+
+**Backend API Testing**
+```bash
+# Test health endpoint
+curl http://localhost:3000/api/health
+
+# Test products endpoint
+curl http://localhost:3000/api/products
+```
+
+**Dependency Auditing**
+```bash
+# Backend security audit
+cd backend
+npm audit
+npm audit fix --force  # If vulnerabilities found
+```
+
+### Process Management
+
+**Kill Existing Processes**
+```bash
+# Windows commands (from start_servers.bat)
+for /f "tokens=5" %a in ('netstat -ano ^| findstr :3000') do taskkill /F /PID %a 2>nul
+for /f "tokens=5" %a in ('netstat -ano ^| findstr :8000') do taskkill /F /PID %a 2>nul
+```
+
+### Access URLs
+
+After starting servers:
+- **Frontend:** http://localhost:8000
+- **Backend API:** http://localhost:3000
+- **Admin Panel:** http://localhost:8000/admin.html
+- **Health Check:** http://localhost:3000/api/health
+
 ## Features
 
 - Modern, responsive design with mobile-first approach
@@ -69,6 +178,23 @@ NODE_ENV=production
 FRONTEND_URL=http://localhost:8000
 ```
 
+### Environment Variables Setup
+
+Create `backend/.env` with:
+```env
+RAZORPAY_KEY_ID=your_razorpay_key_id
+RAZORPAY_KEY_SECRET=your_razorpay_key_secret
+RAZORPAY_WEBHOOK_SECRET=your_webhook_secret
+MONGODB_URI=your_mongodb_connection_string
+PORT=3000
+NODE_ENV=production
+FRONTEND_URL=http://localhost:8000
+EMAIL_SERVICE=gmail
+EMAIL_USER=your_email@gmail.com
+EMAIL_PASS=your_app_password
+ADMIN_EMAIL=your_admin_email@gmail.com
+```
+
 5. Start the backend server:
 ```bash
 cd backend
@@ -88,7 +214,23 @@ serve -s . -p 8000
 
 ## Production Deployment
 
-### Deploying to a Cloud Platform (Heroku Example)
+### Recommended: Deploying to Render.com (Backend) and Netlify (Frontend)
+
+1. **Backend Deployment (Render.com)**
+   - Sign up at [render.com](https://render.com)
+   - Connect your GitHub repository
+   - Select the `backend` directory as the root
+   - Set the build command to: `npm install`
+   - Set the start command to: `npm start`
+   - Configure all environment variables in the Render dashboard
+
+2. **Frontend Deployment (Netlify)**
+   - Sign up at [netlify.com](https://netlify.com)
+   - Connect your GitHub repository
+   - Set the publish directory to: `/` (root)
+   - No build command needed for static sites
+
+### Alternative: Deploying to a Cloud Platform (Heroku Example)
 
 1. Create a Heroku account and install the Heroku CLI
 2. Login to Heroku:
